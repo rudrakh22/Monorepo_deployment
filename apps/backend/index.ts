@@ -1,7 +1,7 @@
 import express from 'express';
 import {prisma} from "db/client"; 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = 8080;
 
 
 app.post("/user",async(req,res)=>{
