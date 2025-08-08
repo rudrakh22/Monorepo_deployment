@@ -1,30 +1,39 @@
-# Stage 1 — Build
-FROM oven/bun:1 AS builder
+FROM oven/bun:1 as builder
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Pass DATABASE_URL at build time for Prisma
+# variable 
 ARG DATABASE_URL
 ENV DATABASE_URL=${DATABASE_URL}
 
-COPY ./packages ./packages
-COPY ./bun.lock ./bun.lock
-COPY ./package.json ./package.json
-COPY ./turbo.json ./turbo.json
-COPY ./apps/web ./apps/web
+#copy the configration files
+COPY ./packages /app/packages
+COPY ./bun.lock /app/bun.lock
+COPY ./package.json /app/package.json
+COPY ./turbo.json /app/turbo.json
+
+# copy the main app
+COPY ./apps/web /app/apps/web
 
 RUN bun install
-RUN bun run db:generate
-RUN bun run build
+# add this "db:generate": "cd packages/db && bunx prisma generate && cd ../..",
+RUN bun run db:generate 
+RUN DATABASE_URL=${DATABASE_URL}  bun run build
 
-# Stage 2 — Runtime
-FROM oven/bun:1
 
-WORKDIR /usr/src/app
+# stage 2
+FROM oven/bun:1-slim
 
-COPY --from=builder /usr/src/app ./
+WORKDIR /app
 
-EXPOSE 3000
+COPY --from=builder /app/packages /app/packages
+COPY --from=builder /app/bun.lock /app/bun.lock
+COPY --from=builder /app/package.json /app/package.json
+COPY --from=builder /app/turbo.json /app/turbo.json
 
-# DATABASE_URL will be set at runtime from env, not baked in
-CMD ["bun", "run", "start:web"]
+# main app build files
+COPY --from=builder /app/apps/web/.next /app/apps/web/.next
+COPY --from=builder /app/apps/web/public /app/apps/web/public
+
+# "start:web": "cd apps/web && bun run start && cd ../..",
+CMD ["npm" , "run" , "start:web"]

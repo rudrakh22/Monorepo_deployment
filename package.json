@@ -10,7 +10,7 @@
     "db:generate":"cd packages/db && bunx prisma generate && cd ../.. ",
     "start:backend":"cd apps/backend && bun run index.ts",
     "start:ws":"cd apps/ws && bun run index.ts",
-    "start:web":"cd apps/web && bun run start"
+    "start:web":"cd apps/web && bun run start && cd ../.."
   },
   "devDependencies": {
     "prettier": "^3.6.2",
