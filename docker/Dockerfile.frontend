@@ -1,13 +1,11 @@
-FROM oven/bun:1
+# Stage 1 — Build
+FROM oven/bun:1 AS builder
 
 WORKDIR /usr/src/app
 
-# Accept build arg and make it available to all later steps
+# Pass DATABASE_URL at build time for Prisma
 ARG DATABASE_URL
-ENV DATABASE_URL=$DATABASE_URL
-
-# Debug: Print masked DATABASE_URL to confirm it's set
-RUN echo "DATABASE_URL starts with: $(echo $DATABASE_URL | cut -c1-10)******"
+ENV DATABASE_URL=${DATABASE_URL}
 
 COPY ./packages ./packages
 COPY ./bun.lock ./bun.lock
@@ -16,9 +14,17 @@ COPY ./turbo.json ./turbo.json
 COPY ./apps/web ./apps/web
 
 RUN bun install
-
 RUN bun run db:generate
 RUN bun run build
 
+# Stage 2 — Runtime
+FROM oven/bun:1
+
+WORKDIR /usr/src/app
+
+COPY --from=builder /usr/src/app ./
+
 EXPOSE 3000
+
+# DATABASE_URL will be set at runtime from env, not baked in
 CMD ["bun", "run", "start:web"]
